@@ -6,6 +6,7 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const mysql = require('mysql');
 const sinespApi = require('sinesp-api');
+const moment = require('moment');
 
 function execSQLQuery(sqlQry, res){
     const connection = mysql.createConnection({
@@ -21,6 +22,25 @@ function execSQLQuery(sqlQry, res){
             res.json(error);
         } else {
             res.json(results);
+            connection.end();
+        }
+    })
+}
+
+function execSQLQuerySaida(sqlQry, res, bandeira){
+    const connection = mysql.createConnection({
+        host: 'sql10.freesqldatabase.com',
+        port: 3306,
+        user: 'sql10375663',
+        password: 'Gy7rcApiTc',
+        database: 'sql10375663',
+    })
+
+    connection.query(sqlQry, function(error, results, fields){
+        if(error) {
+            res.json(error);
+        } else {
+            res.json({price: bandeira*results[0].hora.substring(0,2)})
             connection.end();
         }
     })
@@ -92,15 +112,15 @@ router.get('/vagas/:id?', (req, res) => {
 });
 
 router.get('/vagas/fechamento/:id?', (req, res) => {
-    let entrada = `SELECT entrada FROM alocacao WHERE Vagas_id_vagas= ${parseInt(req.params.id)}`;
-    let hora = execSQLQuery(entrada, res);
-    console.log(hora);
+    let bandeira = req.query.bandeira;
+    let entrada =  `SELECT TIMEDIFF(current_timestamp, entrada) AS 'hora'  FROM alocacao WHERE Vagas_id_vagas= ${parseInt(req.params.id)}`
+    let hora = execSQLQuerySaida(entrada, res, bandeira);
 })
 
 router.get('/veiculos', (req, res) => {
     execSQLQuery('SELECT * FROM veiculo', res);
 })
-
+ 
 router.post('/veiculo/cadastra/', (req, res) => {
     const placa = req.body.placa;
     const modelo = req.body.modelo;
